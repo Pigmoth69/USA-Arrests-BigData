@@ -3,7 +3,7 @@ library(plotly)
 library(openintro)
 
 #load the dataset
-df <- read.csv("dataset/USArrests.csv")
+df <- read.csv("dataset/USArrests.csv",header=TRUE, sep = ",")
 df["Code"] <- state2abbr(df$Region)
 
 #define hoover
@@ -32,9 +32,10 @@ ui <- fluidPage(
       sidebarPanel(
         helpText("Create european maps with 
                general information of the countries."),
-        #selectInput("var", 
-        #            label = "Choose a variable to display",
-        #            choices = names(arrests)[2:5]),
+        selectInput("var", 
+                    label = "Choose a variable to display",
+                    choices = colnames(df)[2:5]),
+        helpText("Select the values for the VS evaluation"),
         sliderInput("bins",
                      "Number of bins:",
                      min = 1,
@@ -47,9 +48,9 @@ ui <- fluidPage(
          #textOutput("selected_var"),
          #p(),
          #plotOutput("distPlot")
-         plotlyOutput("distPlot2")
-        #plot_geo(df, locationmode = 'USA-states')
-        
+         plotlyOutput("distPlot2"),
+         #plot_geo(df, locationmode = 'USA-states')
+        plotlyOutput("distPlot3")
       )
    )
 )
@@ -73,15 +74,19 @@ server <- function(input, output) {
    output$distPlot2<-renderPlotly({
        plot_geo(df, locationmode = 'USA-states') %>%
        add_trace(
-         z = ~Murder, text = ~hover, locations = ~Code,
-         color = ~Murder, colors = 'Purples'
+         z = ~get(input$var), text = ~hover, locations = ~Code,
+         color = ~get(input$var), colors = 'Purples'
        ) %>%
        colorbar(title = "Millions USD") %>%
        layout(
-         title = '2011 US Agriculture Exports by State<br>(Hover for breakdown)',
+         title = '1973 US Violent Crime Rates State<br>(Hover for breakdown)',
          geo = g
        )
      
+   })
+   
+   output$distPlot3 <- renderPlotly({
+     plot_ly(mtcars, x = ~mpg, y = ~wt)
    })
    
    output$plot <- renderPlotly({
