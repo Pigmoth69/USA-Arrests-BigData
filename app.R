@@ -37,7 +37,7 @@ ui <- fluidPage(
       mainPanel(
          textOutput("selected_var"),
          p(),
-         plotOutput("distPlot"),
+         #plotOutput("distPlot"),
          plotOutput("distPlot2")
       )
    )
@@ -63,8 +63,8 @@ server <- function(input, output) {
                          aes(x=long, y=lat, map_id=region),
                          fill="#ffffff", color="#ffffff", size=0.15)
      gg <- gg + geom_map(data=arr, map=states,
-                         aes(fill= arrests[input$var], map_id=region),
-                         color="#ffffff", size=0.15)
+                         aes(fill=arrests[input$var], map_id=region),
+                         color="#ffffff", size=0.15) + guides(fill=guide_legend(title=input$var,reverse = TRUE))
      gg <- gg + scale_fill_continuous(low='thistle2', high='darkred', 
                                       guide='colorbar')
      gg <- gg + labs(x=NULL, y=NULL)
