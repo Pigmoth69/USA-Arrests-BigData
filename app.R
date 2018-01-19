@@ -2,6 +2,8 @@ library(shiny)
 library(plotly) #used to plot all the charts and graphics
 library(openintro) #used to convert state names to state codes
 library(DT) #used to display the dataset in the table with the search option
+library(listviewer) #required for schema
+
 
 #load the dataset
 df <- read.csv("dataset/USArrests.csv",header=TRUE, sep = ",")
@@ -58,12 +60,37 @@ ui <- fluidPage(
           p(),
           selectInput("var_bar_chart", 
                       label = "Choose a variable to display",
-                      choices = colnames(df)[2:5])
+                      choices = colnames(df)[2:5]),
+          p(),
+          sliderInput("slider_input_bar", h3("Sliders"),
+                      min = 0, max = 100, value = c(0, 100)),
+          p(),
+          sliderInput("slider_input_bar_results", h3("Number of results"),
+                      min = 0, max = nrow(df), value = nrow(df))
         ),
         conditionalPanel(
           'input.graphical_data === "Pie Chart"',
           helpText("In this Pie chart..."),
           p()
+        ),
+        conditionalPanel(
+          'input.graphical_data === "Scatter Plot"',
+          helpText("Scatter plot"),
+          p(),
+          selectInput("var_scatter_plot_1", 
+                      label = "Choose a variable to display on axis X",
+                      choices = colnames(df)[2:5]),
+          p(),
+          selectInput("var_scatter_plot_2", 
+                      label = "Choose a variable to display on axis Y",
+                      choices = colnames(df)[2:5],
+                      selected = colnames(df)[3])
+          #selectizeInput(
+          # 'e5', '5. Max number of items to select', choices = state.name,
+          #  multiple = TRUE, options = list(maxItems = 2)
+          #),
+          #sliderInput("slider_input_scatter", h3("Sliders"),
+          #            min = 0, max = 100, value = 50)
         )
         #conditionalPanel()
       #helpText("Create european maps with 
@@ -93,41 +120,20 @@ ui <- fluidPage(
                  plotlyOutput("regionChart")
         ),
         tabPanel("Scatter Plot",
-                 h5(textOutput("yet another text output")),
-                 htmlOutput("yetAnotherHTMLElement")
+                 p(),
+                 plotlyOutput("scatterPlot")
         ),
         tabPanel("Pie Chart", icon = icon("pie-chart"),
                  p(),
                  plotlyOutput("pieChart")
         )
       )
-      #textOutput("selected_var"),
-      #p(),
-      #plotOutput("distPlot")
-      #plotlyOutput("distPlot2"),
-      #plotlyOutput("distPlot3"),
-      #plotlyOutput("distPlot4")
-      #plot_geo(df, locationmode = 'USA-states')
-      #plot_geo(df, locationmode = 'USA-states')
     )
 )
 )
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {
-  
-  output$selected_var <- renderText({ 
-    paste("You have selected", input$var)
-  })
-  
-  output$distPlot <- renderPlot({
-    # generate bins based on input$bins from ui.R
-    x    <- faithful[, 2] 
-    bins <- seq(min(x), max(x), length.out = input$bins + 1)
-    
-    # draw the histogram with the specified number of bins
-    hist(x, breaks = bins, col = 'darkgray', border = 'white')
-  })
+server <- function(input, output, session) {
   
   # sorted columns are colored now because CSS are attached to them
   output$mytable2 <- DT::renderDataTable({
@@ -148,21 +154,36 @@ server <- function(input, output) {
     
   })
   
-  output$distPlot3 <- renderPlotly({
-    plot_ly(mtcars, x = ~mpg, y = ~wt)
-  })
-  
   output$regionChart<-renderPlotly({
     x <- list(
       title = "Region",
-      autotick=TRUE
+      categoryarray = "Murder", 
+      categoryorder = "numeric"
     )
     y <- list(
       title = input$var_bar_chart
     )
     
-    plot_ly(df, x = ~Region, y = ~get(input$var_bar_chart),type="bar") %>%
-      layout(xaxis = x, yaxis = y)
+    plot_ly(df, x = ~Region, y = ~get(input$var_bar_chart), type="bar",
+            transforms = list(
+              list(
+                type = 'filter',
+                target = 'y',
+                operation = '<=',
+                value = input$slider_input_bar[2]
+              ),
+              list(
+                type = 'filter',
+                target = 'y',
+                operation = '>=',
+                value = input$slider_input_bar[1]
+              )
+            )) %>%
+      layout(xaxis = list(title = "Region",
+                          categoryarray = ~Murder, 
+                          categoryorder = "numeric"
+                          ),
+             yaxis = y)
     
   })
   
@@ -191,9 +212,25 @@ server <- function(input, output) {
     
   })
   
-  output$plot <- renderPlotly({
-    plot_ly(mtcars, x = ~mpg, y = ~wt)
+  output$scatterPlot <- renderPlotly({
+    plot_ly(df, x = ~get(input$var_scatter_plot_1), y = ~get(input$var_scatter_plot_2),
+                 marker = list(size = 10,
+                               color = 'rgba(255, 182, 193, .9)',
+                               line = list(color = 'rgba(152, 0, 0, .8)',
+                                           width = 2))) %>%
+      layout(title = 'Styled Scatter',
+             yaxis = list(zeroline = FALSE, title=input$var_scatter_plot_2),
+             xaxis = list(zeroline = FALSE, title=input$var_scatter_plot_1))
   })
+  
+  #observe
+  observe({
+    column <- input$var_bar_chart
+    tmp_min <- min(df[column])
+    tmp_max <- max(df[column])
+    step_tmp <- 0.01
+    updateSliderInput(session, "slider_input_bar", value= c(tmp_min,tmp_max), min = tmp_min, max = tmp_max,step=step_tmp)
+   })
   
 }
 
