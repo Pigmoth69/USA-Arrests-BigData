@@ -46,31 +46,28 @@ ui <- fluidPage(
           )
         ),
         conditionalPanel(
-          'input.graphical_data === "Choropleth Map"',
-          helpText("Choropleth Map representing the US states. Below the user can choose what variable to analise"),
-          p(),
-          selectInput("var_cloropleth", 
-                      label = "Choose a variable to display",
-                      choices = colnames(df)[2:5])
+          'input.graphical_data === "Stacked Bar Chart"',
+          helpText("Stacked bar chart"),
+          p()
         ),
         conditionalPanel(
           'input.graphical_data === "Region Chart"',
           helpText("In this Histrogram graphic, you can choose what variable you want to plot and order them for a more precise analises"),
-          p(),
+          p()
+        ),
+        conditionalPanel(
+          'input.graphical_data === "Choropleth Map"',
+          helpText("In this Cloropleth map cenaws cenas ceaass"),
+          p()
+        ),
+        conditionalPanel(
+          'input.graphical_data === "Region Chart" || input.graphical_data === "Choropleth Map"',
           selectInput("var_bar_chart", 
                       label = "Choose a variable to display",
                       choices = colnames(df)[2:5]),
           p(),
-          sliderInput("slider_input_bar", h3("Sliders"),
-                      min = 0, max = 100, value = c(0, 100)),
-          p(),
-          sliderInput("slider_input_bar_results", h3("Number of results"),
-                      min = 0, max = nrow(df), value = nrow(df)),
-          p(),
-          selectInput("var_bar_bar_order", 
-                      label = "Order by:",
-                      choices = c("None","Ascending","Descending"))
-          
+          sliderInput("slider_input_bar", h3("Values range:"),
+                      min = 0, max = 100, value = c(0, 100))
         ),
         conditionalPanel(
           'input.graphical_data === "Pie Chart"',
@@ -123,9 +120,13 @@ ui <- fluidPage(
                  p(),
                  plotlyOutput("regionChart")
         ),
-        tabPanel("Scatter Plot",
+        tabPanel("Scatter Plot", icon = icon("bar-chart-o"),
                  p(),
                  plotlyOutput("scatterPlot")
+        ),
+        tabPanel("Stacked Bar Chart", icon = icon("bar-chart-o"),
+                 p(),
+                 plotlyOutput("stackedBarChart")
         ),
         tabPanel("Pie Chart", icon = icon("pie-chart"),
                  p(),
@@ -145,30 +146,25 @@ server <- function(input, output, session) {
   })
   
   output$dispChoropleth<-renderPlotly({
-    plot_geo(df, locationmode = 'USA-states') %>%
+    
+    newData <-df %>% 
+      filter(get(input$var_bar_chart) >= input$slider_input_bar[1]) %>%
+      filter(get(input$var_bar_chart) <= input$slider_input_bar[2])
+    
+    plot_geo(newData, locationmode = 'USA-states')%>%
       add_trace(
-        z = ~get(input$var_cloropleth), text = ~hover, locations = ~Code,
-        color = ~get(input$var_cloropleth), colors = 'Reds'
+        z = ~get(input$var_bar_chart), text = ~hover, locations = ~Code,
+        color = ~get(input$var_bar_chart), colors = 'Reds'
       ) %>%
       colorbar(title = "Millions USD") %>%
       layout(
         title = '1973 US Violent Crime Rates State<br>(Hover for breakdown)',
         geo = g
       )
-    
   })
   
   output$regionChart<-renderPlotly({
-    x <- list(
-      title = "Region"
-    )
-    y <- list(
-      title = input$var_bar_chart
-    )
-    
 
-    #newData <- df[order(~Murder),]
-    
     plot_ly(df, x = ~Region, y = ~get(input$var_bar_chart), type="bar",
             transforms = list(
               list(
@@ -184,9 +180,8 @@ server <- function(input, output, session) {
                 value = input$slider_input_bar[1]
               )
             )) %>%
-      layout(xaxis = list(title = "Region"
-                          ),
-             yaxis = y)
+      layout(xaxis = list(title = "Region"),
+             yaxis = list(title = input$var_bar_chart))
     
   })
   
@@ -217,6 +212,10 @@ server <- function(input, output, session) {
   
   output$scatterPlot <- renderPlotly({
     plot_ly(df, x = ~get(input$var_scatter_plot_1), y = ~get(input$var_scatter_plot_2),
+            hoverinfo = 'text',
+            text = ~paste('State: ', Region,
+                          '<br>',input$var_scatter_plot_2,get(input$var_scatter_plot_2),
+                          '<br>',input$var_scatter_plot_1,get(input$var_scatter_plot_1)),
                  marker = list(size = 10,
                                color = 'rgba(255, 182, 193, .9)',
                                line = list(color = 'rgba(152, 0, 0, .8)',
@@ -224,6 +223,13 @@ server <- function(input, output, session) {
       layout(title = 'Styled Scatter',
              yaxis = list(zeroline = FALSE, title=input$var_scatter_plot_2),
              xaxis = list(zeroline = FALSE, title=input$var_scatter_plot_1))
+  })
+  
+  output$stackedBarChart <- renderPlotly({
+    p <- plot_ly(df, x = ~Region, y = ~Assault, type = 'bar', name = 'Assault') %>%
+      add_trace(y = ~Murder, name = 'Murder') %>%
+      add_trace(y = ~Rape, name = 'Rape') %>%
+      layout(yaxis = list(title = 'Total'), barmode = 'stack')
   })
   
   #observe
