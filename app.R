@@ -2,8 +2,7 @@ library(shiny)
 library(plotly) #used to plot all the charts and graphics
 library(openintro) #used to convert state names to state codes
 library(DT) #used to display the dataset in the table with the search option
-library(listviewer) #required for schema
-
+library(dplyr)
 
 #load the dataset
 df <- read.csv("dataset/USArrests.csv",header=TRUE, sep = ",")
@@ -66,7 +65,12 @@ ui <- fluidPage(
                       min = 0, max = 100, value = c(0, 100)),
           p(),
           sliderInput("slider_input_bar_results", h3("Number of results"),
-                      min = 0, max = nrow(df), value = nrow(df))
+                      min = 0, max = nrow(df), value = nrow(df)),
+          p(),
+          selectInput("var_bar_bar_order", 
+                      label = "Order by:",
+                      choices = c("None","Ascending","Descending"))
+          
         ),
         conditionalPanel(
           'input.graphical_data === "Pie Chart"',
@@ -156,15 +160,16 @@ server <- function(input, output, session) {
   
   output$regionChart<-renderPlotly({
     x <- list(
-      title = "Region",
-      categoryarray = "Murder", 
-      categoryorder = "numeric"
+      title = "Region"
     )
     y <- list(
       title = input$var_bar_chart
     )
     
-    plot_ly(df, x = ~Region, y = ~get(input$var_bar_chart), type="bar",
+
+    newData <- df[order(~Murder),]
+    
+    plot_ly(newData, x = ~Region, y = ~get(input$var_bar_chart), type="bar",
             transforms = list(
               list(
                 type = 'filter',
@@ -179,9 +184,7 @@ server <- function(input, output, session) {
                 value = input$slider_input_bar[1]
               )
             )) %>%
-      layout(xaxis = list(title = "Region",
-                          categoryarray = ~Murder, 
-                          categoryorder = "numeric"
+      layout(xaxis = list(title = "Region"
                           ),
              yaxis = y)
     
