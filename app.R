@@ -167,9 +167,9 @@ server <- function(input, output, session) {
     )
     
 
-    newData <- df[order(~Murder),]
+    #newData <- df[order(~Murder),]
     
-    plot_ly(newData, x = ~Region, y = ~get(input$var_bar_chart), type="bar",
+    plot_ly(df, x = ~Region, y = ~get(input$var_bar_chart), type="bar",
             transforms = list(
               list(
                 type = 'filter',
