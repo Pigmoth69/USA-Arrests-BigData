@@ -9,7 +9,7 @@ df <- read.csv("dataset/USArrests.csv",header=TRUE, sep = ",")
 df["Code"] <- state2abbr(df$Region)
 
 #define hoover
-df$hover <- with(df, paste(Region, '<br>', "Murder", Murder, "Assault", Assault, "<br>","Urban Population",UrbanPop,"<br>","Rape",Rape))
+#df$hover <- with(df, paste('State: ',Region, '<br>', "Murder", Murder, "Assault", Assault, "<br>","Urban Population",UrbanPop,"<br>","Rape",Rape))
 
 # give state boundaries a white border
 l <- list(color = toRGB("white"), width = 2)
@@ -153,7 +153,10 @@ server <- function(input, output, session) {
     
     plot_geo(newData, locationmode = 'USA-states')%>%
       add_trace(
-        z = ~get(input$var_bar_chart), text = ~hover, locations = ~Code,
+        z = ~get(input$var_bar_chart),
+        text = ~paste('State: ', Region,
+                      '<br>',input$var_bar_chart,': ',get(input$var_bar_chart)),
+        locations = ~Code,
         color = ~get(input$var_bar_chart), colors = 'Reds'
       ) %>%
       colorbar(title = "Millions USD") %>%
