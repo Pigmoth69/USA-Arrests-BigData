@@ -22,6 +22,9 @@ g <- list(
   lakecolor = toRGB('white')
 )
 
+#Global text
+percentage<- 'Arrest (in %)'
+perX<- 'Arrest (per 100k residents)'
 
 
 # Define UI for application that draws a histogram
@@ -36,47 +39,59 @@ ui <- fluidPage(
           'input.graphical_data === "Dataset"',
           img(src="usa.png", width="100%"),
           p(),
-          p("The used data was Violent Crime Rates by US State (1973). Here we can se the complete dataset."),
+          h4("The used data was Violent Crime Rates by US State (1973). Here we can se the complete dataset."),
           p(),
-          p("Possible Actions:"),
+          h5(tags$b("Possible Actions:")),
           tags$ul(
             tags$li("Click on the Columns to order the dataset"), p(),
             tags$li("Change the total number of entries in the page"), p(),
             tags$li("Search for a specific word or value")
+          ),
+          p(),
+          h5(tags$b("The variables are in the following units:")),
+          tags$ul(
+            tags$li(tags$b("Murder"),'=',perX),
+            tags$li(tags$b("Assault"),"=",perX),
+            tags$li(tags$b("UrbanPop"),"=",percentage),
+            tags$li(tags$b("Rape"),"=",perX)
           )
         ),
         conditionalPanel(
           'input.graphical_data === "Stacked Bar Chart"',
-          helpText("Stacked bar chart"),
-          p()
-        ),
+          helpText("Stacked bar charts are designed to help you simultaneously compare totals and notice sharp changes at the item level that are likely to have the most influence on movements in category totals."),
+          helpText("In the following stacked bar chart, we can easily compare the variations of the data and compare it with other plotting values..")
+          ),
         conditionalPanel(
           'input.graphical_data === "Region Chart"',
-          helpText("In this Histrogram graphic, you can choose what variable you want to plot and order them for a more precise analises"),
+          helpText("A bar chart or bar graph is a chart or graph that presents categorical data with rectangular bars with heights or lengths proportional to the values that they represent. The bars can be plotted vertically or horizontally. A vertical bar chart is sometimes called a line graph."),
+          helpText("In this case, we can choose and vary between the variables \"Murder\", \"Assault\", \"Rape\", \"Urban Population\" in the dropdown menu and use the slider to select a range of values according to the preference."),
           p()
         ),
         conditionalPanel(
           'input.graphical_data === "Choropleth Map"',
-          helpText("In this Cloropleth map cenaws cenas ceaass"),
+          helpText("A choropleth map is a thematic map in which areas are shaded or patterned in proportion to the measurement of the statistical variable being displayed on the map, such as population density or per-capita income. Choropleth maps provide an easy way to visualize how a measurement varies across a geographic area or show the level of variability within a region."),
+          helpText("In this case, we can choose and vary between the variables \"Murder\", \"Assault\", \"Rape\", \"Urban Population\" in the dropdown menu and use the slider to select a range of values according to the preference."),
           p()
         ),
         conditionalPanel(
           'input.graphical_data === "Region Chart" || input.graphical_data === "Choropleth Map"',
+          h3("Select variable to analyze"),
           selectInput("var_bar_chart", 
-                      label = "Choose a variable to display",
+                      label = "",
                       choices = colnames(df)[2:5]),
           p(),
-          sliderInput("slider_input_bar", h3("Values range:"),
+          sliderInput("slider_input_bar", h3("Choose values range:"),
                       min = 0, max = 100, value = c(0, 100))
         ),
         conditionalPanel(
           'input.graphical_data === "Pie Chart"',
-          helpText("In this Pie chart..."),
-          p()
+          helpText("A pie chart is a circular statistical graphic which is divided into slices to illustrate numerical proportion. In a pie chart, the arc length of each slice (and consequently its central angle and area), is proportional to the quantity it represents."),
+          helpText(" In the following pie chart we can clearly compare the values and check what's the major arrest in the US that corresponts to the Assault felony.")
         ),
         conditionalPanel(
           'input.graphical_data === "Scatter Plot"',
-          helpText("Scatter plot"),
+          helpText("A scatter plot is a type of plot or mathematical diagram using Cartesian coordinates to display values for typically two variables for a set of data. The data is displayed as a collection of points, each having the value of one variable determining the position on the horizontal axis and the value of the other variable determining the position on the vertical axis."),
+          helpText("In this case, we can choose and vary between the variables \"Murder\", \"Assault\", \"Rape\", \"Urban Population\" in the dropdown menus. We can combine this variables in order to better visualize and analyze the information."),
           p(),
           selectInput("var_scatter_plot_1", 
                       label = "Choose a variable to display on axis X",
@@ -86,23 +101,7 @@ ui <- fluidPage(
                       label = "Choose a variable to display on axis Y",
                       choices = colnames(df)[2:5],
                       selected = colnames(df)[3])
-          #selectizeInput(
-          # 'e5', '5. Max number of items to select', choices = state.name,
-          #  multiple = TRUE, options = list(maxItems = 2)
-          #),
-          #sliderInput("slider_input_scatter", h3("Sliders"),
-          #            min = 0, max = 100, value = 50)
         )
-        #conditionalPanel()
-      #helpText("Create european maps with 
-      #         general information of the countries."),
-      
-      #helpText("Select the values for the VS evaluation"),
-      #sliderInput("bins",
-      #            "Number of bins:",
-      #            min = 1,
-      #            max = 50,
-      #            value = 30)
       ),
     
     # Show a plot of the generated distribution
@@ -140,7 +139,6 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   
-  # sorted columns are colored now because CSS are attached to them
   output$mytable2 <- DT::renderDataTable({
     DT::datatable(df[1:5], options = list(orderClasses = TRUE))
   })
@@ -159,7 +157,7 @@ server <- function(input, output, session) {
         locations = ~Code,
         color = ~get(input$var_bar_chart), colors = 'Reds'
       ) %>%
-      colorbar(title = "Millions USD") %>%
+      colorbar(title = buildText(input$var_bar_chart)) %>%
       layout(
         title = '1973 US Violent Crime Rates State<br>(Hover for breakdown)',
         geo = g
@@ -184,7 +182,7 @@ server <- function(input, output, session) {
               )
             )) %>%
       layout(xaxis = list(title = "Region"),
-             yaxis = list(title = input$var_bar_chart))
+             yaxis = list(title = buildText(input$var_bar_chart)))
     
   })
   
@@ -206,7 +204,7 @@ server <- function(input, output, session) {
                                line = list(color = '#FFFFFF', width = 1)),
                  #The 'pull' attribute can also be used to create space between the sectors
                  showlegend = FALSE) %>%
-      layout(title = 'Violent Crime Rates by US State (1973)',
+      layout(title = paste('Violent Crime Rates by US State (1973',buildText("")),
              xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
              yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
     
@@ -224,8 +222,8 @@ server <- function(input, output, session) {
                                line = list(color = 'rgba(152, 0, 0, .8)',
                                            width = 2))) %>%
       layout(title = 'Styled Scatter',
-             yaxis = list(zeroline = FALSE, title=input$var_scatter_plot_2),
-             xaxis = list(zeroline = FALSE, title=input$var_scatter_plot_1))
+             yaxis = list(zeroline = FALSE, title=buildText(input$var_scatter_plot_2)),
+             xaxis = list(zeroline = FALSE, title=buildText(input$var_scatter_plot_1)))
   })
   
   output$stackedBarChart <- renderPlotly({
@@ -243,6 +241,16 @@ server <- function(input, output, session) {
     step_tmp <- 0.01
     updateSliderInput(session, "slider_input_bar", value= c(tmp_min,tmp_max), min = tmp_min, max = tmp_max,step=step_tmp)
    })
+  
+  buildText <- function(variable){
+    if(variable == 'UrbanPop')
+      return(paste(variable,percentage))
+    else if(variable == 'Murder' || variable == 'Rape' || variable == 'Assault')
+      return(paste(variable,perX))
+    else
+      return(paste(variable,perX))
+    
+  }
   
 }
 
